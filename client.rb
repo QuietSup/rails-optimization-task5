@@ -14,19 +14,45 @@ OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 #   - работает 1 секунду
 #   - одновременно можно запускать не более одного
 #
+EXPECTED_RESULT = "0bbe9ecf251ef4131dd43e1600742cfb"
+EXPECTED_TIME = 7
+
+def test(result, time)
+  if result != EXPECTED_RESULT
+    puts '-' * 10
+    puts "ERROR: result is not correct"
+    puts "EXPECTED_RESULT = #{EXPECTED_RESULT}"
+    puts "ACTUAL_RESULT = #{result}"
+  end
+  if time > EXPECTED_TIME
+    puts '-' * 10
+    puts "ERROR: time is too long"
+    puts "EXPECTED_TIME = #{EXPECTED_TIME}"
+    puts "ACTUAL_TIME = #{time}"
+  end
+  puts '-' * 10
+  puts "TESTED"
+end
+
 def a(value)
-  puts "https://localhost:9292/a?value=#{value}"
-  Faraday.get("https://localhost:9292/a?value=#{value}").body
+  Thread.new do
+    puts "https://localhost:9292/a?value=#{value}"
+    Faraday.get("https://localhost:9292/a?value=#{value}").body
+  end.value
 end
 
 def b(value)
-  puts "https://localhost:9292/b?value=#{value}"
-  Faraday.get("https://localhost:9292/b?value=#{value}").body
+  Thread.new do
+    puts "https://localhost:9292/b?value=#{value}"
+    Faraday.get("https://localhost:9292/b?value=#{value}").body
+  end.value
 end
 
 def c(value)
-  puts "https://localhost:9292/c?value=#{value}"
-  Faraday.get("https://localhost:9292/c?value=#{value}").body
+  Thread.new do
+    puts "https://localhost:9292/c?value=#{value}"
+    Faraday.get("https://localhost:9292/c?value=#{value}").body
+  end.value
 end
 
 # Референсное решение, приведённое ниже работает правильно, занимает ~19.5 секунд
@@ -73,6 +99,9 @@ puts "C3 = #{c3}"
 
 c123 = collect_sorted([c1, c2, c3])
 result = a(c123)
+time_taken = Time.now - start
 
-puts "FINISHED in #{Time.now - start}s."
+puts "FINISHED in #{time_taken}s."
 puts "RESULT = #{result}" # 0bbe9ecf251ef4131dd43e1600742cfb
+
+test(result, time_taken)
